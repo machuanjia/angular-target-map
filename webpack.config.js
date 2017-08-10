@@ -65,7 +65,6 @@ module.exports = {
             test:/\.html/,
             use:[{
                 loader:'html-loader'
-
             }]
         },{
             test:/\.ejs$/,
@@ -89,7 +88,7 @@ module.exports = {
         new htmlWebpackPlugin({
             filename:'index.html',
             template:'index.ejs',
-            title:'layer',
+            title:'target map',
             inject:false
         }),
         new ExtractTextPlugin({
