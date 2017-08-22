@@ -42143,8 +42143,6 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); /**
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       * Created by yanshi0429 on 17/8/8.
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       */
@@ -42167,456 +42165,369 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var WtAppTargetMapController = function () {
-    function WtAppTargetMapController($rootScope) {
+    function WtAppTargetMapController($scope, $timeout) {
         _classCallCheck(this, WtAppTargetMapController);
 
-        this.$rootScope = $rootScope;
-        this.NodeWidth = 220;
-        this.NodeHeight = 100;
-        this.NodeIntervalX = 20;
-        this.NodeIntervalY = 50;
-        this.origin = {
-            x: 300,
-            y: 50
+        this.$scope = $scope;
+        this.$timeout = $timeout;
+        this.maxLeft = 0;
+        this.maxRight = 0;
+        this.scale = 1;
+
+        this.nodesType = {
+            '1': '公司',
+            '2': '部门',
+            '3': '个人'
         };
-        this.orgNodes = _.cloneDeep(this.ngModel);
-        this.orgtree = {};
-        this.Nodes = [];
-        this.viewNodes = [];
-        this.showDepth = 2;
-        this.initDepth = true;
-        this.currentList = [];
+        //constant.okrObjectiveType
+
+        //节点设置
+        this.nodeWidth = 220;
+        this.nodeHeight = 120;
+        this.nodeIntervalX = 20;
+        this.nodeIntervalY = 50;
+        this.nodes = [];
+        this.nodesGroup = [];
+        this.depth = 0;
+        this.origin = {
+            x: 100,
+            y: 0
+        };
+        this.init();
     }
 
     _createClass(WtAppTargetMapController, [{
-        key: 'svgClick',
-        value: function svgClick(evt) {
-            if (evt && evt.target) {
-                var _id = evt.target.getAttribute('target');
-                var _node = _.find(this.currentList, { _id: _id });
-                var _children = _.filter(this.orgNodes, function (n) {
-                    return n.parent._id === _id;
-                });
-                if (!_node.expand) {
-                    if (_children && _children.length > 0) {
-                        this.initDepth = false;
-                        this.currentList = this.currentList.concat(_children);
-                        _node.expand = true;
-                    }
+        key: 'removeAnimateChildren',
+        value: function removeAnimateChildren(node, isOwn) {
+            var _this = this;
+
+            if (node) {
+                var nodes = this.nodesGroup[node.depth];
+
+                var _loop = function _loop(i) {
+                    var _temp = nodes[i];
+                    _temp.expand = false;
+                    _.remove(_this.nodes, function (n) {
+                        return n.parents && _.indexOf(n.parents, _temp._id) > -1;
+                    });
+                };
+
+                for (var i in nodes) {
+                    _loop(i);
+                }
+                this.depth = node.depth;
+                this.nodesGroup = this.nodesGroup.splice(0, node.depth + 1);
+            }
+        }
+    }, {
+        key: 'setPath',
+        value: function setPath(nodes) {
+            var self = this;
+            if (!nodes) {
+                nodes = this.nodes;
+            }
+            for (var i in nodes) {
+                var _temp2 = nodes[i];
+                if (_temp2.isRoot) {
+                    continue;
+                }
+                var x1 = _temp2.parentNode.left + self.nodeWidth / 2;
+                var y1 = _temp2.parentNode.top + self.nodeHeight;
+                var x2 = _temp2.left + self.nodeWidth / 2;
+                var y2 = _temp2.top;
+                var path = "";
+
+                if (x2 < x1) {
+                    path = "M" + x1 + " " + y1 + " C" + (x1 - 30) + " " + (y1 + 35) + ", " + (x2 + 20) + " " + (y2 - 10) + ", " + (x2 + 20) + " " + (y2 - 10) + " S" + (x2 + 8) + " " + (y2 - 10) + ", " + x2 + " " + y2;
+                } else if (x2 > x1) {
+                    path = "M" + x1 + " " + y1 + " C" + (x1 + 30) + " " + (y1 + 35) + ", " + (x2 - 20) + " " + (y2 - 10) + ", " + (x2 - 20) + " " + (y2 - 10) + " S" + (x2 - 8) + " " + (y2 - 10) + ", " + x2 + " " + y2;
                 } else {
-                    _node.expand = false;
-                    for (var i in _children) {
-                        _.remove(this.currentList, { _id: _children[i]._id });
+                    path = "M" + x1 + " " + y1 + "L" + x2 + " " + y2;
+                }
+                _temp2.path = path;
+            }
+        }
+    }, {
+        key: 'appendChildren',
+        value: function appendChildren(node, animate) {
+            var _this2 = this;
+
+            var _self = this;
+            var children = _.filter(this.orgNodes, function (n) {
+                return n.parent && n.parent._id === node._id;
+            });
+
+            if (children.length === 0) {
+                return;
+            }
+            node.childrenSize = children.length;
+            node.nodes = children;
+            this.depth++;
+            this.nodesGroup[this.depth] = children;
+            var _left = node.left + this.nodeWidth / 2 - (children.length * this.nodeWidth + (children.length - 1) * this.nodeIntervalX) / 2;
+            var _top = node.top + _self.nodeHeight + _self.nodeIntervalY;
+
+            var _loop2 = function _loop2(i) {
+                var _temp = children[i];
+                _temp.parentNode = node;
+                _temp.width = _self.nodeWidth;
+                _temp.height = _self.nodeHeight;
+                _temp.depth = node.depth + 1;
+                _temp.left = _left + i * _self.nodeWidth + i * _self.nodeIntervalX;
+                _temp.top = _top;
+                _temp.typeDesc = _self.nodesType[_temp.type];
+                _temp.orderIndex = i;
+                _temp.expand = false;
+                _temp.title = _self.setTitle(_temp);
+
+                var _children = _.filter(_this2.orgNodes, function (n) {
+                    return n.parent && n.parent._id === _temp._id;
+                });
+                if (_children.length > 0) {
+                    _temp.childrenSize = _children.length;
+                    _temp.nodes = _children;
+                }
+                if (animate) {
+                    _temp.animate = animate;
+                }
+                _this2.nodes.push(_temp);
+            };
+
+            for (var i in children) {
+                _loop2(i);
+            };
+        }
+    }, {
+        key: 'setHVSize',
+        value: function setHVSize(nodes) {
+            if (!nodes) {
+                nodes = this.nodes;
+            }
+            var _left = void 0,
+                _right = void 0;
+            for (var i in nodes) {
+                var _temp3 = nodes[i];
+                if (i == 0) {
+                    _left = _temp3.left;
+                    _right = _temp3.left;
+                } else {
+                    if (_temp3.left < _left) {
+                        _left = _temp3.left;
+                    }
+                    if (_temp3.left > _right) {
+                        _right = _temp3.left;
                     }
                 }
-                _.each(this.currentList, function (n) {
-                    delete n.Nodes;
-                });
-                this.currentList = this.getTree(this.currentList);
-                this.renderNodes();
+            }
 
-                // if(!_node.expand){
-                //     _node.expand = true;
-                //     if(_node.Depth < this.Depth && _node.Nodes){
-                //         this.viewNodes = this.viewNodes.concat(_node.Nodes);
-                //     }
-                // }else{
-                //     if(_node.Nodes){
-                //         for(let i in _node.Nodes){
-                //             _.remove(this.viewNodes,{_id:_node.Nodes[i]._id});
-                //         }
-                //         _node.expand = false;
-                //     }
-                // }
-                // this.getTree(this.viewNodes);
-                // this.renderNodes();
+            this.maxLeft = _left;
+            this.maxRight = _right;
+
+            var _width = _right - _left + this.nodeWidth;
+            this.map.width = _width;
+            this.origin.x = this.map.width / 2;
+            this.map.contentWidth = _width;
+            if (_width > this.origin.width) {
+                this.map.bodyWidth = _width + 100;
+            } else {
+                this.map.bodyWidth = this.origin.width + 100;
+            }
+
+            var _height = this.depth * (this.nodeHeight + this.nodeIntervalY);
+            this.map.height = _height;
+        }
+    }, {
+        key: 'resetPostion',
+        value: function resetPostion() {
+            var _sw = 0 - this.maxLeft;
+            for (var i in this.nodes) {
+                var _temp4 = this.nodes[i];
+                _temp4.left = _temp4.left + _sw;
+            }
+        }
+    }, {
+        key: 'nodeClick',
+        value: function nodeClick(event, node) {
+            if (event) {
+                event.stopPropagation();
+            }
+            console.log('map click!');
+        }
+    }, {
+        key: 'expandNode',
+        value: function expandNode(node) {
+            this.removeAnimateChildren(node);
+            node.expand = true;
+            this.appendChildren(node);
+            this.setHVSize();
+            this.resetPostion();
+            this.setPath();
+        }
+    }, {
+        key: 'collapseNode',
+        value: function collapseNode(node) {
+            node.expand = false;
+            //删除子节点
+            this.removeAnimateChildren(node);
+            this.setHVSize();
+            this.resetPostion();
+        }
+    }, {
+        key: 'getByte',
+        value: function getByte(str) {
+            for (var i = str.length, n = 0; i--;) {
+                n += str.charCodeAt(i) > 255 ? 2 : 1;
+            }
+            return n;
+        }
+    }, {
+        key: 'setTitle',
+        value: function setTitle(node) {
+            var str = node.name;
+            var endstr = '...';
+            var len = 45;
+
+            function n2(a) {
+                var n = a / 2 | 0;
+                return n > 0 ? n : 1;
+            }
+
+            if (!(str + "").length || !len || len <= 0) {
+                return "";
+            }
+            if (this.getByte(str) <= len) {
+                return str;
+            }
+            var lenS = len - this.getByte(endstr),
+                _lenS = 0,
+                _strl = 0;
+            while (_strl <= lenS) {
+                var _lenS1 = n2(lenS - _strl);
+                _strl += this.getByte(str.substr(_lenS, _lenS1));
+                _lenS += _lenS1;
+            }
+            return str.substr(0, _lenS - 1) + endstr;
+        }
+    }, {
+        key: 'setRootList',
+        value: function setRootList() {
+            var _this3 = this;
+
+            var root = [];
+            var self = this;
+            for (var i in this.orgNodes) {
+                var _temp5 = this.orgNodes[i];
+                if (!_temp5.parent) {
+                    root.push(_temp5);
+                } else {
+                    var _p = _.find(this.orgNodes, { _id: _temp5.parent._id });
+                    if (!_p) {
+                        root.push(_temp5);
+                    }
+                }
+            }
+            var _left = (this.map.width - (root.length * this.nodeWidth + (root.length - 1) * this.nodeIntervalX)) / 2;
+
+            var _loop3 = function _loop3(o) {
+                var _temp = root[o];
+                _temp.parentNode = null;
+                _temp.width = self.nodeWidth;
+                _temp.height = self.nodeHeight;
+                _temp.depth = 1;
+                _temp.orderIndex = o;
+                _temp.left = _left + o * self.nodeWidth + o * self.nodeIntervalX;
+                _temp.top = self.origin.y;
+                _temp.typeDesc = self.nodesType[_temp.type];
+                _temp.isRoot = true;
+
+                _temp.title = self.setTitle(_temp);
+
+                var _children = _.filter(_this3.orgNodes, function (n) {
+                    return n.parent && n.parent._id === _temp._id;
+                });
+                if (_children.length > 0) {
+                    _temp.childrenSize = _children.length;
+                    _temp.nodes = _children;
+                    _temp.expand = false;
+                }
+            };
+
+            for (var o in root) {
+                _loop3(o);
+            }
+
+            this.depth = 1;
+            this.nodes = [];
+            this.nodesGroup[this.depth] = root;
+            this.nodes = this.nodes.concat(root);
+
+            var _l = this.nodes[0].left;
+            var _r = this.nodes[this.nodes.length - 1].left;
+            var _width = _r - _l + this.nodeWidth;
+            if (_width > this.map.width) {
+                this.map.width = _width;
+                this.origin.width = _width;
+                this.map.contentWidth = _width + 50;
+                var _sw = this.map.width / 2 - this.origin.x;
+                this.origin.x = this.map.width / 2;
+                for (var _i in this.nodes) {
+                    var _temp6 = this.nodes[_i];
+                    _temp6.left = _temp6.left + _sw;
+                }
             }
         }
     }, {
         key: 'setLayout',
         value: function setLayout() {
             var _wrap = (0, _jquery2.default)('.target-map-wrap');
+            var _width = _wrap.width();
             this.map = {
-                width: _wrap.width(),
-                height: _wrap.height()
+                containerWidth: _width,
+                bodyWidth: _width,
+                contentWidth: _width - 100,
+                width: _width - 100,
+                height: _wrap.height() - 100
             };
             this.origin = {
-                x: _wrap.width() / 2,
-                y: 100
+                width: _width - 100,
+                x: (_width - 100) / 2,
+                y: 0
             };
         }
     }, {
-        key: 'getTree',
-        value: function getTree(data) {
+        key: 'enlarge',
+        value: function enlarge(scale) {
+            this.scale = scale;
+        }
+    }, {
+        key: 'init',
+        value: function init() {
             var self = this;
-            var array = [];
-            function fn(data, parent) {
-                var result = [],
-                    temp;
-                for (var i in data) {
-                    data[i].Width = self.NodeWidth;
-                    data[i].Height = self.NodeHeight;
-                    data[i].Box = {
-                        w: self.NodeWidth,
-                        h: self.NodeHeight
-                    };
-                    if (data[i].parent._id == parent) {
-                        if (parent == undefined) {
-                            data[i].lvl = 1;
-                        } else {
-                            var _lvl = _.find(data, { _id: data[i].parent._id }).lvl + 1;
-                            if (self.initDepth && _lvl > self.showDepth) {
-                                return;
-                            }
-                            data[i].lvl = _lvl;
-                        }
-
-                        if (data[i].lvl < self.showDepth && _.isUndefined(data[i].expand)) {
-                            data[i].expand = true;
-                        }
-
-                        array.push(data[i]);
-
-                        var children = _.filter(data, function (n) {
-                            return n.parent._id === data[i]._id;
-                        });
-                        _.each(children, function (n) {
-                            n.parentNode = data[i];
-                        });
-                        result.push(data[i]);
-                        temp = fn(data, data[i]._id);
-                        if (temp && temp.length > 0) {
-                            data[i].Nodes = temp;
-                        }
-                    }
+            this.$scope.$on('mapDataRefresh', function (e, data) {
+                if (data.data && data.data.length > 0) {
+                    self.orgNodes = _.cloneDeep(data.data);
+                    self.setLayout();
+                    self.setRootList();
                 }
-                return result;
-            }
-            this.orgtree = fn(data, undefined)[0];
-            return array;
-        }
-    }, {
-        key: 'setRoot',
-        value: function setRoot() {
-            var root = _.find(this.orgNodes, function (n) {
-                return !n.parent;
             });
-            root.parent = {
-                name: 'root'
-            };
-            root.parentNode = null;
-            root.Width = this.NodeWidth;
-            root.Height = this.NodeHeight;
-            root.Box = {
-                w: this.NodeWidth,
-                h: this.NodeHeight
-            };
-        }
-    }, {
-        key: 'renderNodes',
-        value: function renderNodes() {
-            this.IntervalWidth = this.NodeIntervalX;
-            this.IntervalHeight = this.NodeIntervalY;
-            this.Top = this.origin.y;
-            this.Left = this.origin.x;
-            this.Depth = 0;
-            this.Nodes = [];
-            this.DepthGroup = [];
-            var This = this;
-            var self = This = this;
-            GetDepth(this.orgtree);
-            var maxLength = 0;
-            for (var obj in this.DepthGroup) {
-                if (this.DepthGroup[obj].Nodes && this.DepthGroup[obj].Nodes.length > maxLength) {
-                    maxLength = this.DepthGroup[obj].Nodes.length;
+            this.$scope.$on('scaleMap', function (e, data) {
+                if (data && data.scale) {
+                    self.enlarge(data.scale);
                 }
-            }
-            this.Left = this.Left - (maxLength * this.NodeWidth + (maxLength - 1) * this.NodeIntervalX) / 2;
-            SetDepthsHeight();
-            for (var n = 1; n <= this.Depth; n++) {
-                //设置顶距离
-                var tempTop = this.Top + GetDepthHeightToRoot(n);
-                var tempNodes = this.DepthGroup[n].Nodes;
-                for (var m = 0; m < tempNodes.length; m++) {
-                    tempNodes[m].Top = tempTop;
-                }
-            }
+            });
 
-            for (var n = this.Depth; n >= 1; n--) {
-                // 设置左距离
-                var DepthNodes = self.DepthGroup[n].Nodes;
-                if (n == self.Depth) {
-                    for (var m = 0; m < DepthNodes.length; m++) {
-                        if (m == 0) {
-                            DepthNodes[m].Left = 0;
-                        } else {
-                            DepthNodes[m].Left = DepthNodes[m - 1].Left + DepthNodes[m - 1].Width + self.IntervalWidth;
-                        }
-                    }
-                } else {
-                    var flag = false;
-                    for (var m = 0; m < DepthNodes.length; m++) {
-                        // 存在子节点的节点是否出现
-                        if (DepthNodes[m].Nodes && DepthNodes[m].Nodes.length != 0) {
-                            flag = true;
-                            var tempNodeLeft_ = GetParentLeftByNode(DepthNodes[m].Nodes[0]);
-                            tempNodeLeft_ -= DepthNodes[m].Width / 2;
-                            DepthNodes[m].Left = tempNodeLeft_;
-                        } else {
-                            if (flag) {
-                                adjustBox(DepthNodes[m], m);
-                            }
-                        }
-                    }
-                    for (var m = 0; m < DepthNodes.length; m++) {
-                        if (DepthNodes[m].Left == null) {
-                            SetLeftByDepthNode(DepthNodes, m, "LTR");
-                        }
-                    }
-                }
+            if (this.data && this.data.length > 0) {
+                this.orgNodes = _.cloneDeep(this.data);
+                this.setLayout();
+                this.setRootList();
             }
-            var MaxLeftValue = this.Nodes[0].Left;
-            for (var n = 1; n < this.Nodes.length; n++) {
-                //取得最小左距离
-                if (MaxLeftValue > this.Nodes[n].Left) {
-                    MaxLeftValue = this.Nodes[n].Left;
-                }
-            }
-            MaxLeftValue = -MaxLeftValue + this.Left;
-            for (var n = 0; n < this.Nodes.length; n++) {
-                //重新设置距离
-                this.Nodes[n].Left += MaxLeftValue;
-                this.Nodes[n].Box.left = this.Nodes[n].Left;
-                this.Nodes[n].Box.top = this.Nodes[n].Top;
-            }
-
-            for (var _n in this.Nodes) {
-                var temp = this.Nodes[_n];
-                temp.Lines = [];
-                if (temp.parentNode) {
-                    var x1 = temp.parentNode.Left + self.NodeWidth / 2;
-                    var y1 = temp.parentNode.Top + self.NodeHeight;
-                    var x2 = temp.Left + self.NodeWidth / 2;
-                    var y2 = temp.Top;
-                    var path = "";
-
-                    if (x2 < x1) {
-                        path = "M" + x1 + " " + y1 + " C" + (x1 - 30) + " " + (y1 + 35) + ", " + (x2 + 20) + " " + (y2 - 10) + ", " + (x2 + 20) + " " + (y2 - 10) + " S" + (x2 + 8) + " " + (y2 - 10) + ", " + x2 + " " + y2;
-                    } else {
-                        path = "M" + x1 + " " + y1 + " C" + (x1 + 30) + " " + (y1 + 35) + ", " + (x2 - 20) + " " + (y2 - 10) + ", " + (x2 - 20) + " " + (y2 - 10) + " S" + (x2 - 8) + " " + (y2 - 10) + ", " + x2 + " " + y2;
-                    }
-
-                    temp.Lines.push({
-                        x1: x1,
-                        y1: y1,
-                        x2: x2,
-                        y2: x2,
-                        path: path
-                    });
-                }
-
-                //  if(!temp.Lines){
-                //      temp.Lines = [];
-                //  }
-                // if(temp.Nodes){
-                //     for ( let t in temp.Nodes) {
-                //         let _tt = temp.Nodes[t];
-                //         let x1 = temp.Left + self.NodeWidth/2;
-                //         let y1 = temp.Top + self.NodeHeight;
-                //         let x2 = _tt.Left + self.NodeWidth/2;
-                //         let y2 = _tt.Top;
-                //         let path = "";
-                //
-                //         if(x2 < x1){
-                //             path = "M"+x1+" "+y1+" C"+(x1 - 30)+" "+(y1+35)+", "+(x2+20)+" "+(y2-10)+", "+(x2+20)+" "+(y2-10) +" S"+(x2+8)+" "+(y2-10)+", "+x2+" "+y2;
-                //         }else{
-                //             path = "M"+x1+" "+y1+" C"+(x1 + 30)+" "+(y1+35)+", "+(x2-20)+" "+(y2-10)+", "+(x2-20)+" "+(y2-10) +" S"+(x2-8)+" "+(y2-10)+", "+x2+" "+y2;
-                //         }
-                //
-                //
-                //
-                //         temp.Lines.push({
-                //             x1:x1,
-                //             y1:y1,
-                //             x2:x2,
-                //             y2:x2,
-                //             path:path
-                //         });
-                //
-                //     }
-                // }
-            }
-
-            function GetDepthHeightToRoot(DepthId) {
-                //取得距离顶层的高度
-                var tempHeight_ = 0;
-                for (var x_ = DepthId; x_ >= 1; x_--) {
-                    tempHeight_ += This.DepthGroup[x_].Height;
-                }
-                tempHeight_ += This.IntervalHeight * (DepthId - 1);
-                tempHeight_ -= This.DepthGroup[DepthId].Height;
-                return tempHeight_;
-            }
-            function GetParentLeftByNode(Node_) {
-                // 根据群组中任一节点，取得父节点Left 计算需要数据
-                var tempNodesGroup_ = This.DepthGroup[Node_.Depth].NodeGroups[Node_.NodeGroupId];
-                var tempGroupWidth_ = (tempNodesGroup_[tempNodesGroup_.length - 1].Left + tempNodesGroup_[0].Left + tempNodesGroup_[0].Width) / 2;
-                return tempGroupWidth_;
-            }
-            function adjustBox(Node_, index) {
-                // 节点没有子节点，则为该节点留下空间，调整下方各节点
-                var tempNodesGroup_ = This.DepthGroup[Node_.Depth].Nodes;
-                for (var i = index - 1; i >= 0; i--) {
-                    if (tempNodesGroup_[i].Nodes.length > 0) {
-                        // 取得该节点的子节点集合
-                        var tempChildNodesGroup_ = tempNodesGroup_[i].Nodes;
-                        if (i == index - 1) {
-                            if (tempChildNodesGroup_.length >= 3 || index + 1 < tempNodesGroup_.length && tempChildNodesGroup_.length == 2 && tempNodesGroup_[index + 1].Nodes.length == 2) {
-                                break;
-                            }
-                        }
-                        // 最后的子节点
-                        var tempLastChildNode = tempChildNodesGroup_[tempChildNodesGroup_.length - 1];
-                        // 该层的所有子节点
-                        var tempChildNodesGroupAll_ = This.DepthGroup[Node_.Depth + 1].Nodes;
-                        var indexFrom = tempLastChildNode.NodeOrderId;
-                        for (var j = 0; j < tempChildNodesGroupAll_.length; j++) {
-                            if (tempChildNodesGroupAll_[j] == tempLastChildNode) {
-                                indexFrom = j;
-                            }
-                        }
-
-                        adjustBoxIn(tempChildNodesGroupAll_, indexFrom + 1, tempChildNodesGroupAll_.length, Node_.Width);
-                        break;
-                    }
-                }
-            }
-            function adjustBoxIn(arr, left, right, boxWidth) {
-                for (var i = left; i < right; i++) {
-                    arr[i].Left += boxWidth + This.IntervalWidth;
-                    if (arr[i].Nodes.length > 0) {
-                        adjustBoxIn(arr[i].Nodes, 0, arr[i].Nodes.length, boxWidth);
-                    }
-                }
-            }
-            function SetLeftByDepthNode(DepthNodes_, NodeId, Type) {
-                if (Type == "LTR" && NodeId == DepthNodes_.length - 1) {
-                    SetLeftByDepthNode(DepthNodes_, NodeId, "RTL");
-                    return;
-                }
-                if (Type == "RTL" && NodeId == 0) {
-                    SetLeftByDepthNode(DepthNodes_, NodeId, "LTR");
-                    return;
-                }
-                var FindIndex = null;
-                if (Type == "LTR") {
-                    for (var r_ = NodeId + 1; r_ < DepthNodes_.length; r_++) {
-                        if (DepthNodes_[r_].Left != null) {
-                            FindIndex = r_;
-                            break;
-                        }
-                    }
-                    if (FindIndex == null) {
-                        SetLeftByDepthNode(DepthNodes_, NodeId, "RTL");
-                        return;
-                    } else {
-                        for (var r_ = FindIndex - 1; r_ >= NodeId; r_--) {
-                            DepthNodes_[r_].Left = DepthNodes_[r_ + 1].Left - This.IntervalWidth - DepthNodes_[r_].Width;
-                        }
-                    }
-                }
-                if (Type == "RTL") {
-                    for (var r_ = NodeId - 1; r_ >= 0; r_--) {
-                        if (DepthNodes_[r_].Left != null) {
-                            FindIndex = r_;
-                            break;
-                        }
-                    }
-                    if (FindIndex == null) {
-                        SetLeftByDepthNode(DepthNodes_, NodeId, "LTR");
-                        return;
-                    } else {
-                        for (var r_ = FindIndex + 1; r_ <= NodeId; r_++) {
-                            DepthNodes_[r_].Left = DepthNodes_[r_ - 1].Left + This.IntervalWidth + DepthNodes_[r_ - 1].Width;
-                        }
-                    }
-                }
-            }
-            function SetDepthsHeight() {
-                //设置层深高度
-                for (var n_ = 1; n_ <= This.Depth; n_++) {
-                    var tempNodes_ = This.DepthGroup[n_].Nodes;
-                    var MaxHeight = 0;
-                    for (var m_ = 0; m_ < tempNodes_.length; m_++) {
-                        if (tempNodes_[m_].Height > MaxHeight) {
-                            MaxHeight = tempNodes_[m_].Height;
-                        }
-                    }
-                    This.DepthGroup[n_].Height = MaxHeight;
-                }
-            }
-            function GetDepth(OrgObj) {
-                //取得层深,层群集
-                This.Nodes[This.Nodes.length] = OrgObj;
-                OrgObj.Depth = This.Depth == 0 ? This.Depth + 1 : OrgObj.parentNode.Depth + 1;
-                This.Depth = OrgObj.Depth > This.Depth ? OrgObj.Depth : This.Depth;
-                if (_typeof(This.DepthGroup[OrgObj.Depth]) != "object") {
-                    This.DepthGroup[OrgObj.Depth] = [];
-                    This.DepthGroup[OrgObj.Depth].Nodes = [];
-                    This.DepthGroup[OrgObj.Depth].NodeGroups = [];
-                }
-                This.DepthGroup[OrgObj.Depth].Nodes[This.DepthGroup[OrgObj.Depth].Nodes.length] = OrgObj;
-                if (OrgObj.Depth == 1) {
-                    This.DepthGroup[OrgObj.Depth].NodeGroups[0] = [];
-                    This.DepthGroup[OrgObj.Depth].NodeGroups[0][0] = OrgObj;
-                    OrgObj.NodeGroupId = 0;
-                    OrgObj.NodeOrderId = 0;
-                } else {
-                    if (This.DepthGroup[OrgObj.Depth].NodeGroups.length == 0) {
-                        This.DepthGroup[OrgObj.Depth].NodeGroups[0] = [];
-                        This.DepthGroup[OrgObj.Depth].NodeGroups[0][0] = OrgObj;
-                        OrgObj.NodeGroupId = 0;
-                        OrgObj.NodeOrderId = 0;
-                    } else {
-                        var GroupsLength = This.DepthGroup[OrgObj.Depth].NodeGroups.length;
-                        var GroupNodesLength = This.DepthGroup[OrgObj.Depth].NodeGroups[GroupsLength - 1].length;
-                        if (OrgObj.parentNode == This.DepthGroup[OrgObj.Depth].NodeGroups[GroupsLength - 1][GroupNodesLength - 1].parentNode) {
-                            This.DepthGroup[OrgObj.Depth].NodeGroups[GroupsLength - 1][GroupNodesLength] = OrgObj;
-                            OrgObj.NodeGroupId = GroupsLength - 1;
-                            OrgObj.NodeOrderId = GroupNodesLength;
-                        } else {
-                            if (_typeof(This.DepthGroup[OrgObj.Depth].NodeGroups[GroupsLength]) != "object") {
-                                This.DepthGroup[OrgObj.Depth].NodeGroups[GroupsLength] = [];
-                            }
-                            GroupNodesLength = This.DepthGroup[OrgObj.Depth].NodeGroups[GroupsLength].length;
-                            This.DepthGroup[OrgObj.Depth].NodeGroups[GroupsLength][GroupNodesLength] = OrgObj;
-                            OrgObj.NodeGroupId = GroupsLength;
-                            OrgObj.NodeOrderId = GroupNodesLength;
-                        }
-                    }
-                }
-
-                if (OrgObj.Nodes && OrgObj.Nodes.length != 0) {
-                    for (var n = 0; n < OrgObj.Nodes.length; n++) {
-                        GetDepth(OrgObj.Nodes[n]);
-                    }
-                }
-            }
-        }
-    }, {
-        key: '$onInit',
-        value: function $onInit() {
-            this.setLayout();
-            this.setRoot();
-            this.currentList = this.getTree(this.orgNodes);
-            this.renderNodes();
         }
     }]);
 
     return WtAppTargetMapController;
 }();
 
-WtAppTargetMapController.$inject = ['$rootScope'];
+WtAppTargetMapController.$inject = ['$scope', '$timeout'];
 // export a = 'aa';
 // export b = 'bb';
 //
@@ -42626,7 +42537,7 @@ exports.default = {
     template: _template2.default,
     controller: WtAppTargetMapController,
     bindings: {
-        ngModel: '='
+        data: '='
     }
 };
 
@@ -42634,7 +42545,7 @@ exports.default = {
 /* 5 */
 /***/ (function(module, exports) {
 
-module.exports = "<div class=\"target-map-wrap\">\n    <!--<div class=\"target-wrap\" ng-repeat=\"node in $ctrl.Nodes track by $index\" style=\"top:{{node.Top}}px;left:{{node.Left}}px\">-->\n\n    <!--</div>-->\n\n    <svg\n            ng-attr-height=\"{{$ctrl.map.height}}\" ng-attr-width=\"{{$ctrl.map.width}}\"\n            ng-click=\"$ctrl.svgClick($event)\"\n            class=\"target-map\">\n        <g ng-repeat=\"node in $ctrl.Nodes track by $index\">\n            <rect\n                    ng-attr-x=\"{{node.Left}}\"\n                    ng-attr-y=\"{{node.Top}}\"\n                    width=\"{{$ctrl.NodeWidth}}\"\n                    height=\"{{$ctrl.NodeHeight}}\"\n                    rx=\"0\"\n                    ry=\"3\"\n                    class=\"rect\"\n                    ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\"\n                    target=\"{{node._id}}\"></rect>\n\n            <text y=\"{{node.Top + 30}}\" class=\"text\" target=\"{{node._id}}\" ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\">\n                <tspan x=\"{{node.Left + 15}}\" target=\"{{node._id}}\" ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\">{{node.name}}</tspan>\n                <tspan x=\"{{node.Left + 15}}\" dy=\"20\" target=\"{{node._id}}\" ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\">{{node.name}}</tspan>\n            </text>\n\n            <text x=\"{{node.Left + 140}}\" y=\"{{node.Top + 80}}\" ng-if=\"node.Nodes && node.Nodes.length > 0\" class=\"desc\" target=\"{{node._id}}\" ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\">\n                {{node.Nodes.length}}个子目标\n            </text>\n\n\n            <rect\n                    ng-attr-x=\"{{node.Left}}\"\n                    ng-attr-y=\"{{node.Top + $ctrl.NodeHeight-5}}\" class=\"progress-container\"\n                    width=\"{{$ctrl.NodeWidth}}\"\n                    height=\"5\" target=\"{{node._id}}\" ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\">\n\n            </rect>\n            <rect\n                    ng-attr-x=\"{{node.Left}}\"\n                    ng-attr-y=\"{{node.Top + $ctrl.NodeHeight-5}}\" class=\"progress\"\n                    width=\"{{$ctrl.NodeWidth*node.overall_progress/100}}\"\n                    height=\"5\" target=\"{{node._id}}\" ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\">\n            </rect>\n\n            <path ng-repeat=\"line in node.Lines track by $index\" d=\"{{line.path}}\" class=\"line\"></path>\n\n        </g>\n\n\n\n\n        <!---->\n        <!--<g>-->\n            <!--<g ng-repeat=\"member in vm.memberList track by $index\">-->\n                <!--<rect-->\n                        <!--ng-attr-x=\"{{member.rect.x}}\"-->\n                        <!--ng-attr-y=\"{{member.rect.y}}\"-->\n                        <!--ng-attr-width=\"{{member.rect.width}}\"-->\n                        <!--ng-attr-height=\"{{member.rect.height}}\"-->\n                        <!--class=\"rect\"></rect>-->\n\n                <!--<rect ng-repeat=\"instance in member.instances track by $index\"-->\n                      <!--ng-attr-x=\"{{instance.x}}\"-->\n                      <!--ng-attr-y=\"{{instance.y}}\"-->\n                      <!--ng-attr-width=\"{{instance.width}}\"-->\n                      <!--ng-attr-height=\"{{instance.height}}\"-->\n                      <!--class=\"instance\"></rect>-->\n\n            <!--</g>-->\n\n            <!--<g ng-repeat=\"resource in vm.resourceList track by $index\">-->\n                <!--<rect-->\n                        <!--ng-attr-x=\"{{resource.rect.x}}\"-->\n                        <!--ng-attr-y=\"{{resource.rect.y}}\"-->\n                        <!--ng-attr-width=\"{{resource.rect.width}}\"-->\n                        <!--ng-attr-height=\"{{resource.rect.height}}\"-->\n                        <!--class=\"rect\"></rect>-->\n\n                <!--<rect ng-repeat=\"instance in resource.instances track by $index\"-->\n                      <!--ng-attr-x=\"{{instance.x}}\"-->\n                      <!--ng-attr-y=\"{{instance.y}}\"-->\n                      <!--ng-attr-width=\"{{instance.width}}\"-->\n                      <!--ng-attr-height=\"{{instance.height}}\"-->\n                      <!--class=\"instance\"></rect>-->\n\n            <!--</g>-->\n        <!--</g>-->\n        <!--<g>-->\n            <!--<text ng-repeat=\"text in vm.graph.texts\"-->\n                  <!--ng-attr-x=\"{{text.x}}\"-->\n                  <!--ng-attr-y=\"{{text.y}}\"-->\n                  <!--class=\"text\">{{text.text}}</text>-->\n        <!--</g>-->\n        <!--<g>-->\n            <!--<line ng-repeat=\"line in vm.graph.lines\"-->\n                  <!--ng-attr-x1=\"{{line.x1}}\"-->\n                  <!--ng-attr-y1=\"{{line.y1}}\"-->\n                  <!--ng-attr-x2=\"{{line.x2}}\"-->\n                  <!--ng-attr-y2=\"{{line.y2}}\"-->\n                  <!--class=\"line\">-->\n            <!--</line>-->\n        <!--</g>-->\n        <!--<g>-->\n            <!--<text-->\n                    <!--ng-attr-x=\"{{vm.graph.select.text1.x}}\"-->\n                    <!--ng-attr-y=\"{{vm.graph.select.text1.y}}\"-->\n                    <!--class=\"text select\">{{vm.graph.select.text1.text}}</text>-->\n            <!--<line-->\n                    <!--id=\"selectLine1\"-->\n                    <!--ng-attr-x1=\"{{vm.graph.select.line1.x1}}\"-->\n                    <!--ng-attr-y1=\"{{vm.graph.select.line1.y1}}\"-->\n                    <!--ng-attr-x2=\"{{vm.graph.select.line1.x2}}\"-->\n                    <!--ng-attr-y2=\"{{vm.graph.select.line1.y2}}\"-->\n                    <!--class=\"line select\">-->\n            <!--</line>-->\n            <!--<line-->\n                    <!--id=\"selectLine2\"-->\n                    <!--ng-attr-x1=\"{{vm.graph.select.line2.x1}}\"-->\n                    <!--ng-attr-y1=\"{{vm.graph.select.line2.y1}}\"-->\n                    <!--ng-attr-x2=\"{{vm.graph.select.line2.x2}}\"-->\n                    <!--ng-attr-y2=\"{{vm.graph.select.line2.y2}}\"-->\n                    <!--class=\"line select\">-->\n            <!--</line>-->\n            <!--<text-->\n                    <!--ng-attr-x=\"{{vm.graph.select.text2.x}}\"-->\n                    <!--ng-attr-y=\"{{vm.graph.select.text2.y}}\"-->\n                    <!--class=\"text select\">{{vm.graph.select.text2.text}}</text>-->\n            <!--<rect-->\n                    <!--id=\"selectRect\"-->\n                    <!--ng-attr-x=\"{{vm.graph.select.rect.x}}\"-->\n                    <!--ng-attr-y=\"{{vm.graph.select.rect.y}}\"-->\n                    <!--ng-attr-width=\"{{vm.graph.select.rect.width}}\"-->\n                    <!--ng-attr-height=\"{{vm.graph.select.rect.height}}\"-->\n                    <!--class=\"instance select\"></rect>-->\n        <!--</g>-->\n    </svg>\n\n</div>";
+module.exports = "<div class=\"target-map-wrap\" ng-style=\"{width:$ctrl.map.containerWidth}\">\n    <div class=\"target-map-body\" ng-style=\"{width:$ctrl.map.bodyWidth}\">\n        <div class=\"target-map-content\" style=\"transform: scale({{$ctrl.scale}});width:{{$ctrl.map.contentWidth}}px\">\n            <div ng-click=\"$ctrl.nodeClick($event,node)\"\n                 class=\"target-wrap pbox-trigger\"\n                 ng-repeat=\"node in $ctrl.nodes track by $index\" style=\"top:{{node.top}}px;left:{{node.left}}px;\">\n                <div class=\"target-content\">\n                    <div class=\"target-body\">\n                        <lc-avatar member=\"node.director\" size=\"24\"></lc-avatar>\n                        <div class=\"target-main\">\n                            <div class=\"title\" title=\"{{node.name}}\">\n                                {{node.title}}\n                            </div>\n\n                            <div class=\"aside\" stop-propagation=\"\">\n                                <!--{{'okr.OBJECTIVE_TYPE' | translate}}：{{node.typeDesc}}-->\n                                <i ng-if=\"node.childrenSize && node.childrenSize > 0 && node.expand === false\" ng-click=\"$ctrl.expandNode(node)\" class=\"wtf wtf-expand\">+</i>\n                                <i ng-if=\"node.childrenSize && node.childrenSize > 0 && node.expand === true\" ng-click=\"$ctrl.collapseNode(node)\" class=\"wtf wtf-collapse\">-</i>\n                            </div>\n                        </div>\n                    </div>\n                    <div class=\"target-footer\">\n                        <div class=\"progress-container\">\n                            <div class=\"progress\">\n                                <div class=\"progress-bar\" style=\"width: {{node.overall_progress}}%\"></div>\n                            </div>\n                            <!--<uib-progressbar value=\"node.overall_progress*100\"></uib-progressbar>-->\n                        </div>\n                        <div class=\"number\">{{node.overall_progress}}%</div>\n                    </div>\n                </div>\n            </div>\n            <svg ng-attr-height=\"{{$ctrl.map.height}}\" ng-attr-width=\"{{$ctrl.map.width}}\" class=\"target-svg\">\n                <g ng-repeat=\"node in $ctrl.nodes track by $index\">\n                    <path ng-if=\"node.path\" ng-attr-d=\"{{node.path}}\" class=\"line\"></path>\n                </g>\n            </svg>\n        </div>\n    </div>\n</div>";
 
 /***/ }),
 /* 6 */

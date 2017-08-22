@@ -1,0 +1,151 @@
+.flex_Bot(@direction) {
+  display                : flex;
+  display                : -ms-flexbox;
+  display                : -webkit-flex;
+  flex-direction         : @direction;
+  -webkit-flex-direction : @direction;
+}
+
+.flex_Bot_level(@level) {
+  flex         : @level;
+  -webkit-flex : @level;
+}
+
+.flex_all(@a,@b,@c) {
+  flex         : @a @b @c;
+  -webkit-flex : @a @b @c;
+}
+
+.flex-row,
+.flex_row {
+  .flex_Bot(row)
+}
+
+.flex-row() {
+  .flex_Bot(row)
+}
+
+.flex-row-reverse,
+.flex_row_reverse {
+  .flex_Bot(row-reverse);
+}
+
+.flex-row-reverse() {
+  .flex_Bot(row-reverse);
+}
+
+.flex-col,
+.flex_col {
+  .flex_Bot(column)
+}
+
+.flex-col() {
+  .flex_Bot(column)
+}
+
+.flex-col-reverse,
+.flex_col_reverse {
+  .flex_Bot(column-reverse);
+  vertical-align : top;
+}
+
+.flex-col-reverse() {
+  .flex_Bot(column-reverse);
+  vertical-align : top;
+}
+
+.flex-inline,
+.flex_inline {
+  display : inline-flex;
+  display : -ms-inline-flexbox;
+  display : -webkit-inline-flex;
+}
+
+.flex-inline() {
+  display : inline-flex;
+  display : -ms-inline-flexbox;
+  display : -webkit-inline-flex;
+}
+
+.flex-se0,
+.flex_se0 {
+  .flex_Bot_level(0)
+}
+
+.flex-se1,
+.flex_se1 {
+  .flex_Bot_level(1)
+}
+
+.flex-se1() {
+  .flex_Bot_level(1)
+}
+
+.flex-se2,
+.flex_se2 {
+  .flex_Bot_level(2)
+}
+
+.flex-se2() {
+  .flex_Bot_level(2)
+}
+
+.flex-se3,
+.flex_se3 {
+  .flex_Bot_level(3)
+}
+
+.flex-se3() {
+  .flex_Bot_level(3)
+}
+
+.flex-se4,
+.flex_se4 {
+  .flex_Bot_level(4)
+}
+
+.flex-se4() {
+  .flex_Bot_level(4)
+}
+
+.flex-se5,
+.flex_se5 {
+  .flex_Bot_level(5)
+}
+
+.flex-se5() {
+  .flex_Bot_level(5)
+}
+
+.flex-bw-100,
+.flex_bw_100 {
+  -webkit-flex-basis : 100px;
+  flex-basis         : 100px;
+}
+
+.flex-fix-w {
+  width : 0;
+}
+
+.flex-fix-w() {
+  width : 0;
+}
+
+.flex_row .flex-se1, .flex_row .flex-se2, .flex_row .flex-se3, .flex_row .flex-se4, .flex_row .flex-se5 {
+  .flex-fix-w()
+}
+.flex-wrap {
+  flex-wrap: wrap;
+}
+.flex-row-between {
+  justify-content: space-between;
+}
+.flex-col-end {
+  align-items: flex-end;
+}
+.flex-grow-0{
+  flex-grow: 0;
+}
+.flex-grow-1{
+  flex-grow: 1;
+}

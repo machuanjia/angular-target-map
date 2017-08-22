@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" ng-app="app">
+<html lang="en" ng-app="app" style="padding: 0">
 <head>
     <meta charset="UTF-8">
     <title><%= htmlWebpackPlugin.options.title%></title>
     <link rel="stylesheet" type="text/css" href="<%= htmlWebpackPlugin.files.css[0]%>"/>
 </head>
-<body ng-controller="appCtrl">
-<wt-app-target-map ng-model="data"></wt-app-target-map>
+<body ng-controller="appCtrl" style="height: 100vh;overflow: auto">
+<wt-app-target-map data="data"></wt-app-target-map>
 <script src="<%= htmlWebpackPlugin.files.chunks.app.entry%>"></script>
 </body>
 </html>

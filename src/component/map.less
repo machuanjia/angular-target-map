@@ -1,47 +1,141 @@
-@map-bg:#eeeeee;
-
+@import "flex";
 
 .target-map-wrap{
   overflow: auto;
-  min-height: 700px;
-  position: relative;
-
-  .target-wrap{
-    position: absolute;
-    background:@map-bg;
-    width: 220px;
-    height: 100px;
-    box-shadow: 0 0 24px rgba(0, 0, 0, 0.18);
+  width: 100%;
+  height: 100%;
+  background: #eee;
+  .target-map-body{
+    padding-left: 50px;
+    padding-right: 50px;
   }
-
-  .target-map{
-    background:@map-bg;
-    .rect{
-      fill: #fff;
-      box-shadow: 0 0 24px rgba(0, 0, 0, 0.18);
-      border-radius:5px;
-    }
-    .line{
-      stroke: #d0d0d0;
-      fill:none;
-      stroke-width: 1px;
-    }
-    .text{
-      fill:#666
-    }
-    .progress-container{
-      fill:#22d7bb;
-      fill-opacity:0.1
-    }
-    .progress{
-      fill:#22d7bb;
-    }
-    .desc{
-      fill:#aaa;
-      font-size: 12px;
-    }
-    .hand{
+  .target-map-content{
+    background: #fff;
+    position: relative;
+    width: 100%;
+    margin: 50px auto;
+    box-sizing: border-box;
+    transform-origin: 0 0;
+    .target-wrap{
+      position: absolute;
+      width: 220px;
+      height: 120px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.18);
+      background:#fff;
+      transition: all 0.2s;
       cursor: pointer;
+      .target-content{
+        background:#fff;
+        position: absolute;
+        top:0;
+        left:0;
+        bottom: 0;
+        width: 100%;
+        border-radius: 3px;
+        &.opacity{
+          opacity: 0.5;
+        }
+
+        .target-body{
+          .flex-row();
+          padding: 15px;
+          .target-main{
+            .flex-se1();
+            .title{
+              height: 40px;
+              padding-left: 10px;
+              overflow: hidden;
+            }
+            .aside{
+              position: relative;
+              color: #aaa;
+              font-size: 12px;
+              padding-left: 10px;
+              margin-top: 5px;
+              padding-right: 10px;
+              .wtf{
+                position: absolute;
+                right: 0;
+                top:-4px;
+                cursor: pointer;
+              }
+
+            }
+          }
+
+        }
+        .target-footer{
+          border-top: 1px #eee solid;
+          .flex-row();
+          .progress-container{
+            .flex-se1();
+            padding: 8px 10px 8px 15px;
+            .progress{
+              background: #eee;
+              height: 5px;
+              .progress-bar{
+                background: #22d7bb;
+                height: 5px;
+              }
+            }
+          }
+
+
+          //.progress-container{
+          //  padding: 8px 10px 8px 15px;
+          //  width: 100%;
+          //  .progress{
+          //    margin-bottom: 0;
+          //    .progress-bar{
+          //      background-color: #22d7bb;
+          //      height: 5px;
+          //    }
+          //  }
+          //}
+
+          .number{
+            font-size: 12px;
+            color: #888;
+            font-family: "lcletter";
+            padding: 4px 15px 0 0;
+          }
+        }
+      }
+
+      &.danger{
+        .progress-container{
+          .progress{
+            .progress-bar{
+              background-color: #ff5b57;
+            }
+          }
+        }
+      }
+      &.warning{
+        .progress-container{
+          .progress{
+            .progress-bar{
+              background-color: #ffc442;
+            }
+          }
+        }
+      }
+      &.success{
+        .progress-container{
+          .progress{
+            background-color: fade(#22d7bb,10);
+          }
+        }
+      }
+    }
+    .target-svg{
+      background:#eee;
+      display: block;
+      .line{
+        stroke: #ddd;
+        fill:none;
+        stroke-width: 1px;
+      }
     }
   }
 }

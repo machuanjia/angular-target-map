@@ -1,139 +1,40 @@
-<div class="target-map-wrap">
-    <!--<div class="target-wrap" ng-repeat="node in $ctrl.Nodes track by $index" style="top:{{node.Top}}px;left:{{node.Left}}px">-->
+<div class="target-map-wrap" ng-style="{width:$ctrl.map.containerWidth}">
+    <div class="target-map-body" ng-style="{width:$ctrl.map.bodyWidth}">
+        <div class="target-map-content" style="transform: scale({{$ctrl.scale}});width:{{$ctrl.map.contentWidth}}px">
+            <div ng-click="$ctrl.nodeClick($event,node)"
+                 class="target-wrap pbox-trigger"
+                 ng-repeat="node in $ctrl.nodes track by $index" style="top:{{node.top}}px;left:{{node.left}}px;">
+                <div class="target-content">
+                    <div class="target-body">
+                        <lc-avatar member="node.director" size="24"></lc-avatar>
+                        <div class="target-main">
+                            <div class="title" title="{{node.name}}">
+                                {{node.title}}
+                            </div>
 
-    <!--</div>-->
-
-    <svg
-            ng-attr-height="{{$ctrl.map.height}}" ng-attr-width="{{$ctrl.map.width}}"
-            ng-click="$ctrl.svgClick($event)"
-            class="target-map">
-        <g ng-repeat="node in $ctrl.Nodes track by $index">
-            <rect
-                    ng-attr-x="{{node.Left}}"
-                    ng-attr-y="{{node.Top}}"
-                    width="{{$ctrl.NodeWidth}}"
-                    height="{{$ctrl.NodeHeight}}"
-                    rx="0"
-                    ry="3"
-                    class="rect"
-                    ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]"
-                    target="{{node._id}}"></rect>
-
-            <text y="{{node.Top + 30}}" class="text" target="{{node._id}}" ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]">
-                <tspan x="{{node.Left + 15}}" target="{{node._id}}" ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]">{{node.name}}</tspan>
-                <tspan x="{{node.Left + 15}}" dy="20" target="{{node._id}}" ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]">{{node.name}}</tspan>
-            </text>
-
-            <text x="{{node.Left + 140}}" y="{{node.Top + 80}}" ng-if="node.Nodes && node.Nodes.length > 0" class="desc" target="{{node._id}}" ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]">
-                {{node.Nodes.length}}个子目标
-            </text>
-
-
-            <rect
-                    ng-attr-x="{{node.Left}}"
-                    ng-attr-y="{{node.Top + $ctrl.NodeHeight-5}}" class="progress-container"
-                    width="{{$ctrl.NodeWidth}}"
-                    height="5" target="{{node._id}}" ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]">
-
-            </rect>
-            <rect
-                    ng-attr-x="{{node.Left}}"
-                    ng-attr-y="{{node.Top + $ctrl.NodeHeight-5}}" class="progress"
-                    width="{{$ctrl.NodeWidth*node.overall_progress/100}}"
-                    height="5" target="{{node._id}}" ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]">
-            </rect>
-
-            <path ng-repeat="line in node.Lines track by $index" d="{{line.path}}" class="line"></path>
-
-        </g>
-
-
-
-
-        <!---->
-        <!--<g>-->
-            <!--<g ng-repeat="member in vm.memberList track by $index">-->
-                <!--<rect-->
-                        <!--ng-attr-x="{{member.rect.x}}"-->
-                        <!--ng-attr-y="{{member.rect.y}}"-->
-                        <!--ng-attr-width="{{member.rect.width}}"-->
-                        <!--ng-attr-height="{{member.rect.height}}"-->
-                        <!--class="rect"></rect>-->
-
-                <!--<rect ng-repeat="instance in member.instances track by $index"-->
-                      <!--ng-attr-x="{{instance.x}}"-->
-                      <!--ng-attr-y="{{instance.y}}"-->
-                      <!--ng-attr-width="{{instance.width}}"-->
-                      <!--ng-attr-height="{{instance.height}}"-->
-                      <!--class="instance"></rect>-->
-
-            <!--</g>-->
-
-            <!--<g ng-repeat="resource in vm.resourceList track by $index">-->
-                <!--<rect-->
-                        <!--ng-attr-x="{{resource.rect.x}}"-->
-                        <!--ng-attr-y="{{resource.rect.y}}"-->
-                        <!--ng-attr-width="{{resource.rect.width}}"-->
-                        <!--ng-attr-height="{{resource.rect.height}}"-->
-                        <!--class="rect"></rect>-->
-
-                <!--<rect ng-repeat="instance in resource.instances track by $index"-->
-                      <!--ng-attr-x="{{instance.x}}"-->
-                      <!--ng-attr-y="{{instance.y}}"-->
-                      <!--ng-attr-width="{{instance.width}}"-->
-                      <!--ng-attr-height="{{instance.height}}"-->
-                      <!--class="instance"></rect>-->
-
-            <!--</g>-->
-        <!--</g>-->
-        <!--<g>-->
-            <!--<text ng-repeat="text in vm.graph.texts"-->
-                  <!--ng-attr-x="{{text.x}}"-->
-                  <!--ng-attr-y="{{text.y}}"-->
-                  <!--class="text">{{text.text}}</text>-->
-        <!--</g>-->
-        <!--<g>-->
-            <!--<line ng-repeat="line in vm.graph.lines"-->
-                  <!--ng-attr-x1="{{line.x1}}"-->
-                  <!--ng-attr-y1="{{line.y1}}"-->
-                  <!--ng-attr-x2="{{line.x2}}"-->
-                  <!--ng-attr-y2="{{line.y2}}"-->
-                  <!--class="line">-->
-            <!--</line>-->
-        <!--</g>-->
-        <!--<g>-->
-            <!--<text-->
-                    <!--ng-attr-x="{{vm.graph.select.text1.x}}"-->
-                    <!--ng-attr-y="{{vm.graph.select.text1.y}}"-->
-                    <!--class="text select">{{vm.graph.select.text1.text}}</text>-->
-            <!--<line-->
-                    <!--id="selectLine1"-->
-                    <!--ng-attr-x1="{{vm.graph.select.line1.x1}}"-->
-                    <!--ng-attr-y1="{{vm.graph.select.line1.y1}}"-->
-                    <!--ng-attr-x2="{{vm.graph.select.line1.x2}}"-->
-                    <!--ng-attr-y2="{{vm.graph.select.line1.y2}}"-->
-                    <!--class="line select">-->
-            <!--</line>-->
-            <!--<line-->
-                    <!--id="selectLine2"-->
-                    <!--ng-attr-x1="{{vm.graph.select.line2.x1}}"-->
-                    <!--ng-attr-y1="{{vm.graph.select.line2.y1}}"-->
-                    <!--ng-attr-x2="{{vm.graph.select.line2.x2}}"-->
-                    <!--ng-attr-y2="{{vm.graph.select.line2.y2}}"-->
-                    <!--class="line select">-->
-            <!--</line>-->
-            <!--<text-->
-                    <!--ng-attr-x="{{vm.graph.select.text2.x}}"-->
-                    <!--ng-attr-y="{{vm.graph.select.text2.y}}"-->
-                    <!--class="text select">{{vm.graph.select.text2.text}}</text>-->
-            <!--<rect-->
-                    <!--id="selectRect"-->
-                    <!--ng-attr-x="{{vm.graph.select.rect.x}}"-->
-                    <!--ng-attr-y="{{vm.graph.select.rect.y}}"-->
-                    <!--ng-attr-width="{{vm.graph.select.rect.width}}"-->
-                    <!--ng-attr-height="{{vm.graph.select.rect.height}}"-->
-                    <!--class="instance select"></rect>-->
-        <!--</g>-->
-    </svg>
-
+                            <div class="aside" stop-propagation="">
+                                <!--{{'okr.OBJECTIVE_TYPE' | translate}}：{{node.typeDesc}}-->
+                                <i ng-if="node.childrenSize && node.childrenSize > 0 && node.expand === false" ng-click="$ctrl.expandNode(node)" class="wtf wtf-expand">+</i>
+                                <i ng-if="node.childrenSize && node.childrenSize > 0 && node.expand === true" ng-click="$ctrl.collapseNode(node)" class="wtf wtf-collapse">-</i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="target-footer">
+                        <div class="progress-container">
+                            <div class="progress">
+                                <div class="progress-bar" style="width: {{node.overall_progress}}%"></div>
+                            </div>
+                            <!--<uib-progressbar value="node.overall_progress*100"></uib-progressbar>-->
+                        </div>
+                        <div class="number">{{node.overall_progress}}%</div>
+                    </div>
+                </div>
+            </div>
+            <svg ng-attr-height="{{$ctrl.map.height}}" ng-attr-width="{{$ctrl.map.width}}" class="target-svg">
+                <g ng-repeat="node in $ctrl.nodes track by $index">
+                    <path ng-if="node.path" ng-attr-d="{{node.path}}" class="line"></path>
+                </g>
+            </svg>
+        </div>
+    </div>
 </div>
