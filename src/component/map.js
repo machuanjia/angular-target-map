@@ -21,27 +21,53 @@ class WtAppTargetMapController {
         this.Nodes = [];
         this.viewNodes = [];
         this.showDepth = 2;
+        this.initDepth = true;
+        this.currentList = [];
     }
 
     svgClick(evt) {
         if(evt && evt.target){
             let _id = evt.target.getAttribute('target');
-            let _node = _.find(this.Nodes,{_id:_id});
+            let _node = _.find(this.currentList,{_id:_id});
+            let _children = _.filter(this.orgNodes,function(n){
+                return n.parent._id === _id;
+            });
             if(!_node.expand){
-                _node.expand = true;
-                if(_node.Depth < this.Depth && _node.Nodes){
-                    this.viewNodes = this.viewNodes.concat(_node.Nodes);
+                if(_children && _children.length > 0){
+                    this.initDepth = false;
+                    this.currentList = this.currentList.concat(_children);
+                    _node.expand = true;
                 }
             }else{
-                if(_node.Nodes){
-                    for(let i in _node.Nodes){
-                        _.remove(this.viewNodes,{_id:_node.Nodes[i]._id});
-                    }
-                    _node.expand = false;
+                _node.expand = false;
+                for(let i in _children){
+                    _.remove(this.currentList,{_id:_children[i]._id});
                 }
             }
-            this.getTree(this.viewNodes);
+            _.each(this.currentList,function(n){
+                delete n.Nodes;
+            });
+            this.currentList = this.getTree(this.currentList);
             this.renderNodes();
+
+
+
+
+            // if(!_node.expand){
+            //     _node.expand = true;
+            //     if(_node.Depth < this.Depth && _node.Nodes){
+            //         this.viewNodes = this.viewNodes.concat(_node.Nodes);
+            //     }
+            // }else{
+            //     if(_node.Nodes){
+            //         for(let i in _node.Nodes){
+            //             _.remove(this.viewNodes,{_id:_node.Nodes[i]._id});
+            //         }
+            //         _node.expand = false;
+            //     }
+            // }
+            // this.getTree(this.viewNodes);
+            // this.renderNodes();
         }
 
     }
@@ -60,6 +86,7 @@ class WtAppTargetMapController {
     }
     getTree(data){
         let self = this;
+        let array = [];
         function fn(data, parent) {
             var result = [], temp;
             for (var i in data) {
@@ -70,6 +97,22 @@ class WtAppTargetMapController {
                     h:self.NodeHeight
                 };
                 if (data[i].parent._id == parent) {
+                    if (parent == undefined) {
+                        data[i].lvl = 1;
+                    } else {
+                        let _lvl = _.find(data, {_id: data[i].parent._id}).lvl + 1;
+                        if(self.initDepth && _lvl > self.showDepth){
+                            return;
+                        }
+                        data[i].lvl =_lvl;
+                    }
+
+                    if(data[i].lvl < self.showDepth && _.isUndefined(data[i].expand)){
+                        data[i].expand = true;
+                    }
+
+                    array.push(data[i]);
+
                     let children = _.filter(data, function (n) {
                         return n.parent._id === data[i]._id;
                     });
@@ -78,18 +121,18 @@ class WtAppTargetMapController {
                     });
                     result.push(data[i]);
                     temp = fn(data, data[i]._id);
-                    if (temp.length > 0) {
+                    if (temp && temp.length > 0) {
                         data[i].Nodes = temp;
                     }
                 }
             }
             return result;
         }
-        this.orgtree = fn(data, undefined);
-        this.orgtree = this.orgtree[0];
+        this.orgtree = fn(data, undefined)[0];
+        return array;
     }
-    initRootData (data){
-        let root = _.find(data, function (n) {
+    setRoot (){
+        let root = _.find(this.orgNodes, function (n) {
             return !n.parent;
         });
         root.parent = {
@@ -113,8 +156,6 @@ class WtAppTargetMapController {
         this.Depth = 0;
         this.Nodes = [];
         this.DepthGroup = [];
-        //this.DepthGroup[n].Nodes 层深节点集合
-        //this.DepthGroup[n].NodeGroups[m] 层深节点按上层分类集合 this.DepthGroup[n].NodeGroups[m][k]层深节点
         var This = this;
         let self = This = this;
         GetDepth(this.orgtree);
@@ -180,15 +221,9 @@ class WtAppTargetMapController {
             this.Nodes[n].Box.top = this.Nodes[n].Top;
         }
 
-
-
-
-
         for (let n in this.Nodes) {
            let temp  = this.Nodes[n];
-            if(!temp.Lines){
-                temp.Lines = [];
-            }
+            temp.Lines = [];
            if(temp.parentNode){
                let x1 = temp.parentNode.Left + self.NodeWidth/2;
                let y1 = temp.parentNode.Top + self.NodeHeight;
@@ -209,7 +244,6 @@ class WtAppTargetMapController {
                    y2:x2,
                    path:path
                });
-
            }
 
            //  if(!temp.Lines){
@@ -405,26 +439,11 @@ class WtAppTargetMapController {
         }
     }
 
-    showNodes(){
-        let self = this;
-        for(let i in this.Nodes){
-            let _temp  = this.Nodes[i];
-            if(_temp.Depth < self.showDepth){
-                _temp.expand = true;
-            }
-        }
-        this.viewNodes = _.filter(this.Nodes,function(n){
-            return n.Depth <= self.showDepth;
-        });
-    }
-
-
     $onInit() {
         this.setLayout();
-        this.initRootData(this.orgNodes);
-        this.getTree(this.orgNodes);
+        this.setRoot();
+        this.currentList = this.getTree(this.orgNodes);
         this.renderNodes();
-        this.showNodes();
     }
 }
 

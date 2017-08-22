@@ -42184,6 +42184,8 @@ var WtAppTargetMapController = function () {
         this.Nodes = [];
         this.viewNodes = [];
         this.showDepth = 2;
+        this.initDepth = true;
+        this.currentList = [];
     }
 
     _createClass(WtAppTargetMapController, [{
@@ -42191,22 +42193,43 @@ var WtAppTargetMapController = function () {
         value: function svgClick(evt) {
             if (evt && evt.target) {
                 var _id = evt.target.getAttribute('target');
-                var _node = _.find(this.Nodes, { _id: _id });
+                var _node = _.find(this.currentList, { _id: _id });
+                var _children = _.filter(this.orgNodes, function (n) {
+                    return n.parent._id === _id;
+                });
                 if (!_node.expand) {
-                    _node.expand = true;
-                    if (_node.Depth < this.Depth && _node.Nodes) {
-                        this.viewNodes = this.viewNodes.concat(_node.Nodes);
+                    if (_children && _children.length > 0) {
+                        this.initDepth = false;
+                        this.currentList = this.currentList.concat(_children);
+                        _node.expand = true;
                     }
                 } else {
-                    if (_node.Nodes) {
-                        for (var i in _node.Nodes) {
-                            _.remove(this.viewNodes, { _id: _node.Nodes[i]._id });
-                        }
-                        _node.expand = false;
+                    _node.expand = false;
+                    for (var i in _children) {
+                        _.remove(this.currentList, { _id: _children[i]._id });
                     }
                 }
-                this.getTree(this.viewNodes);
+                _.each(this.currentList, function (n) {
+                    delete n.Nodes;
+                });
+                this.currentList = this.getTree(this.currentList);
                 this.renderNodes();
+
+                // if(!_node.expand){
+                //     _node.expand = true;
+                //     if(_node.Depth < this.Depth && _node.Nodes){
+                //         this.viewNodes = this.viewNodes.concat(_node.Nodes);
+                //     }
+                // }else{
+                //     if(_node.Nodes){
+                //         for(let i in _node.Nodes){
+                //             _.remove(this.viewNodes,{_id:_node.Nodes[i]._id});
+                //         }
+                //         _node.expand = false;
+                //     }
+                // }
+                // this.getTree(this.viewNodes);
+                // this.renderNodes();
             }
         }
     }, {
@@ -42226,6 +42249,7 @@ var WtAppTargetMapController = function () {
         key: 'getTree',
         value: function getTree(data) {
             var self = this;
+            var array = [];
             function fn(data, parent) {
                 var result = [],
                     temp;
@@ -42237,6 +42261,22 @@ var WtAppTargetMapController = function () {
                         h: self.NodeHeight
                     };
                     if (data[i].parent._id == parent) {
+                        if (parent == undefined) {
+                            data[i].lvl = 1;
+                        } else {
+                            var _lvl = _.find(data, { _id: data[i].parent._id }).lvl + 1;
+                            if (self.initDepth && _lvl > self.showDepth) {
+                                return;
+                            }
+                            data[i].lvl = _lvl;
+                        }
+
+                        if (data[i].lvl < self.showDepth && _.isUndefined(data[i].expand)) {
+                            data[i].expand = true;
+                        }
+
+                        array.push(data[i]);
+
                         var children = _.filter(data, function (n) {
                             return n.parent._id === data[i]._id;
                         });
@@ -42245,20 +42285,20 @@ var WtAppTargetMapController = function () {
                         });
                         result.push(data[i]);
                         temp = fn(data, data[i]._id);
-                        if (temp.length > 0) {
+                        if (temp && temp.length > 0) {
                             data[i].Nodes = temp;
                         }
                     }
                 }
                 return result;
             }
-            this.orgtree = fn(data, undefined);
-            this.orgtree = this.orgtree[0];
+            this.orgtree = fn(data, undefined)[0];
+            return array;
         }
     }, {
-        key: 'initRootData',
-        value: function initRootData(data) {
-            var root = _.find(data, function (n) {
+        key: 'setRoot',
+        value: function setRoot() {
+            var root = _.find(this.orgNodes, function (n) {
                 return !n.parent;
             });
             root.parent = {
@@ -42282,8 +42322,6 @@ var WtAppTargetMapController = function () {
             this.Depth = 0;
             this.Nodes = [];
             this.DepthGroup = [];
-            //this.DepthGroup[n].Nodes 层深节点集合
-            //this.DepthGroup[n].NodeGroups[m] 层深节点按上层分类集合 this.DepthGroup[n].NodeGroups[m][k]层深节点
             var This = this;
             var self = This = this;
             GetDepth(this.orgtree);
@@ -42354,9 +42392,7 @@ var WtAppTargetMapController = function () {
 
             for (var _n in this.Nodes) {
                 var temp = this.Nodes[_n];
-                if (!temp.Lines) {
-                    temp.Lines = [];
-                }
+                temp.Lines = [];
                 if (temp.parentNode) {
                     var x1 = temp.parentNode.Left + self.NodeWidth / 2;
                     var y1 = temp.parentNode.Top + self.NodeHeight;
@@ -42568,27 +42604,12 @@ var WtAppTargetMapController = function () {
             }
         }
     }, {
-        key: 'showNodes',
-        value: function showNodes() {
-            var self = this;
-            for (var i in this.Nodes) {
-                var _temp = this.Nodes[i];
-                if (_temp.Depth < self.showDepth) {
-                    _temp.expand = true;
-                }
-            }
-            this.viewNodes = _.filter(this.Nodes, function (n) {
-                return n.Depth <= self.showDepth;
-            });
-        }
-    }, {
         key: '$onInit',
         value: function $onInit() {
             this.setLayout();
-            this.initRootData(this.orgNodes);
-            this.getTree(this.orgNodes);
+            this.setRoot();
+            this.currentList = this.getTree(this.orgNodes);
             this.renderNodes();
-            this.showNodes();
         }
     }]);
 
@@ -42613,7 +42634,7 @@ exports.default = {
 /* 5 */
 /***/ (function(module, exports) {
 
-module.exports = "<div class=\"target-map-wrap\">\n    <svg\n            ng-attr-height=\"{{$ctrl.map.height}}\" ng-attr-width=\"{{$ctrl.map.width}}\"\n            ng-click=\"$ctrl.svgClick($event)\"\n            class=\"target-map\">\n        <g ng-repeat=\"node in $ctrl.viewNodes track by $index\">\n            <rect\n                    ng-attr-x=\"{{node.Left}}\"\n                    ng-attr-y=\"{{node.Top}}\"\n                    width=\"{{$ctrl.NodeWidth}}\"\n                    height=\"{{$ctrl.NodeHeight}}\"\n                    rx=\"0\"\n                    ry=\"3\"\n                    class=\"rect\"\n                    target=\"{{node._id}}\"></rect>\n\n            <text y=\"{{node.Top + 30}}\" class=\"text\" target=\"{{node._id}}\">\n                <tspan x=\"{{node.Left + 15}}\" target=\"{{node._id}}\">{{node.name}}</tspan>\n                <tspan x=\"{{node.Left + 15}}\" dy=\"20\" target=\"{{node._id}}\">{{node.name}}</tspan>\n            </text>\n\n            <text x=\"{{node.Left + 140}}\" y=\"{{node.Top + 80}}\" ng-if=\"node.Nodes && node.Nodes.length > 0\" class=\"desc\" target=\"{{node._id}}\">\n                {{node.Nodes.length}}个子目标\n            </text>\n\n\n            <rect\n                    ng-attr-x=\"{{node.Left}}\"\n                    ng-attr-y=\"{{node.Top + $ctrl.NodeHeight-5}}\" class=\"progress-container\"\n                    width=\"{{$ctrl.NodeWidth}}\"\n                    height=\"5\" target=\"{{node._id}}\">\n\n            </rect>\n            <rect\n                    ng-attr-x=\"{{node.Left}}\"\n                    ng-attr-y=\"{{node.Top + $ctrl.NodeHeight-5}}\" class=\"progress\"\n                    width=\"{{$ctrl.NodeWidth*node.overall_progress/100}}\"\n                    height=\"5\" target=\"{{node._id}}\">\n            </rect>\n\n            <path ng-repeat=\"line in node.Lines track by $index\" d=\"{{line.path}}\" class=\"line\"></path>\n\n        </g>\n\n\n\n\n        <!---->\n        <!--<g>-->\n            <!--<g ng-repeat=\"member in vm.memberList track by $index\">-->\n                <!--<rect-->\n                        <!--ng-attr-x=\"{{member.rect.x}}\"-->\n                        <!--ng-attr-y=\"{{member.rect.y}}\"-->\n                        <!--ng-attr-width=\"{{member.rect.width}}\"-->\n                        <!--ng-attr-height=\"{{member.rect.height}}\"-->\n                        <!--class=\"rect\"></rect>-->\n\n                <!--<rect ng-repeat=\"instance in member.instances track by $index\"-->\n                      <!--ng-attr-x=\"{{instance.x}}\"-->\n                      <!--ng-attr-y=\"{{instance.y}}\"-->\n                      <!--ng-attr-width=\"{{instance.width}}\"-->\n                      <!--ng-attr-height=\"{{instance.height}}\"-->\n                      <!--class=\"instance\"></rect>-->\n\n            <!--</g>-->\n\n            <!--<g ng-repeat=\"resource in vm.resourceList track by $index\">-->\n                <!--<rect-->\n                        <!--ng-attr-x=\"{{resource.rect.x}}\"-->\n                        <!--ng-attr-y=\"{{resource.rect.y}}\"-->\n                        <!--ng-attr-width=\"{{resource.rect.width}}\"-->\n                        <!--ng-attr-height=\"{{resource.rect.height}}\"-->\n                        <!--class=\"rect\"></rect>-->\n\n                <!--<rect ng-repeat=\"instance in resource.instances track by $index\"-->\n                      <!--ng-attr-x=\"{{instance.x}}\"-->\n                      <!--ng-attr-y=\"{{instance.y}}\"-->\n                      <!--ng-attr-width=\"{{instance.width}}\"-->\n                      <!--ng-attr-height=\"{{instance.height}}\"-->\n                      <!--class=\"instance\"></rect>-->\n\n            <!--</g>-->\n        <!--</g>-->\n        <!--<g>-->\n            <!--<text ng-repeat=\"text in vm.graph.texts\"-->\n                  <!--ng-attr-x=\"{{text.x}}\"-->\n                  <!--ng-attr-y=\"{{text.y}}\"-->\n                  <!--class=\"text\">{{text.text}}</text>-->\n        <!--</g>-->\n        <!--<g>-->\n            <!--<line ng-repeat=\"line in vm.graph.lines\"-->\n                  <!--ng-attr-x1=\"{{line.x1}}\"-->\n                  <!--ng-attr-y1=\"{{line.y1}}\"-->\n                  <!--ng-attr-x2=\"{{line.x2}}\"-->\n                  <!--ng-attr-y2=\"{{line.y2}}\"-->\n                  <!--class=\"line\">-->\n            <!--</line>-->\n        <!--</g>-->\n        <!--<g>-->\n            <!--<text-->\n                    <!--ng-attr-x=\"{{vm.graph.select.text1.x}}\"-->\n                    <!--ng-attr-y=\"{{vm.graph.select.text1.y}}\"-->\n                    <!--class=\"text select\">{{vm.graph.select.text1.text}}</text>-->\n            <!--<line-->\n                    <!--id=\"selectLine1\"-->\n                    <!--ng-attr-x1=\"{{vm.graph.select.line1.x1}}\"-->\n                    <!--ng-attr-y1=\"{{vm.graph.select.line1.y1}}\"-->\n                    <!--ng-attr-x2=\"{{vm.graph.select.line1.x2}}\"-->\n                    <!--ng-attr-y2=\"{{vm.graph.select.line1.y2}}\"-->\n                    <!--class=\"line select\">-->\n            <!--</line>-->\n            <!--<line-->\n                    <!--id=\"selectLine2\"-->\n                    <!--ng-attr-x1=\"{{vm.graph.select.line2.x1}}\"-->\n                    <!--ng-attr-y1=\"{{vm.graph.select.line2.y1}}\"-->\n                    <!--ng-attr-x2=\"{{vm.graph.select.line2.x2}}\"-->\n                    <!--ng-attr-y2=\"{{vm.graph.select.line2.y2}}\"-->\n                    <!--class=\"line select\">-->\n            <!--</line>-->\n            <!--<text-->\n                    <!--ng-attr-x=\"{{vm.graph.select.text2.x}}\"-->\n                    <!--ng-attr-y=\"{{vm.graph.select.text2.y}}\"-->\n                    <!--class=\"text select\">{{vm.graph.select.text2.text}}</text>-->\n            <!--<rect-->\n                    <!--id=\"selectRect\"-->\n                    <!--ng-attr-x=\"{{vm.graph.select.rect.x}}\"-->\n                    <!--ng-attr-y=\"{{vm.graph.select.rect.y}}\"-->\n                    <!--ng-attr-width=\"{{vm.graph.select.rect.width}}\"-->\n                    <!--ng-attr-height=\"{{vm.graph.select.rect.height}}\"-->\n                    <!--class=\"instance select\"></rect>-->\n        <!--</g>-->\n    </svg>\n\n</div>";
+module.exports = "<div class=\"target-map-wrap\">\n    <!--<div class=\"target-wrap\" ng-repeat=\"node in $ctrl.Nodes track by $index\" style=\"top:{{node.Top}}px;left:{{node.Left}}px\">-->\n\n    <!--</div>-->\n\n    <svg\n            ng-attr-height=\"{{$ctrl.map.height}}\" ng-attr-width=\"{{$ctrl.map.width}}\"\n            ng-click=\"$ctrl.svgClick($event)\"\n            class=\"target-map\">\n        <g ng-repeat=\"node in $ctrl.Nodes track by $index\">\n            <rect\n                    ng-attr-x=\"{{node.Left}}\"\n                    ng-attr-y=\"{{node.Top}}\"\n                    width=\"{{$ctrl.NodeWidth}}\"\n                    height=\"{{$ctrl.NodeHeight}}\"\n                    rx=\"0\"\n                    ry=\"3\"\n                    class=\"rect\"\n                    ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\"\n                    target=\"{{node._id}}\"></rect>\n\n            <text y=\"{{node.Top + 30}}\" class=\"text\" target=\"{{node._id}}\" ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\">\n                <tspan x=\"{{node.Left + 15}}\" target=\"{{node._id}}\" ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\">{{node.name}}</tspan>\n                <tspan x=\"{{node.Left + 15}}\" dy=\"20\" target=\"{{node._id}}\" ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\">{{node.name}}</tspan>\n            </text>\n\n            <text x=\"{{node.Left + 140}}\" y=\"{{node.Top + 80}}\" ng-if=\"node.Nodes && node.Nodes.length > 0\" class=\"desc\" target=\"{{node._id}}\" ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\">\n                {{node.Nodes.length}}个子目标\n            </text>\n\n\n            <rect\n                    ng-attr-x=\"{{node.Left}}\"\n                    ng-attr-y=\"{{node.Top + $ctrl.NodeHeight-5}}\" class=\"progress-container\"\n                    width=\"{{$ctrl.NodeWidth}}\"\n                    height=\"5\" target=\"{{node._id}}\" ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\">\n\n            </rect>\n            <rect\n                    ng-attr-x=\"{{node.Left}}\"\n                    ng-attr-y=\"{{node.Top + $ctrl.NodeHeight-5}}\" class=\"progress\"\n                    width=\"{{$ctrl.NodeWidth*node.overall_progress/100}}\"\n                    height=\"5\" target=\"{{node._id}}\" ng-class=\"{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]\">\n            </rect>\n\n            <path ng-repeat=\"line in node.Lines track by $index\" d=\"{{line.path}}\" class=\"line\"></path>\n\n        </g>\n\n\n\n\n        <!---->\n        <!--<g>-->\n            <!--<g ng-repeat=\"member in vm.memberList track by $index\">-->\n                <!--<rect-->\n                        <!--ng-attr-x=\"{{member.rect.x}}\"-->\n                        <!--ng-attr-y=\"{{member.rect.y}}\"-->\n                        <!--ng-attr-width=\"{{member.rect.width}}\"-->\n                        <!--ng-attr-height=\"{{member.rect.height}}\"-->\n                        <!--class=\"rect\"></rect>-->\n\n                <!--<rect ng-repeat=\"instance in member.instances track by $index\"-->\n                      <!--ng-attr-x=\"{{instance.x}}\"-->\n                      <!--ng-attr-y=\"{{instance.y}}\"-->\n                      <!--ng-attr-width=\"{{instance.width}}\"-->\n                      <!--ng-attr-height=\"{{instance.height}}\"-->\n                      <!--class=\"instance\"></rect>-->\n\n            <!--</g>-->\n\n            <!--<g ng-repeat=\"resource in vm.resourceList track by $index\">-->\n                <!--<rect-->\n                        <!--ng-attr-x=\"{{resource.rect.x}}\"-->\n                        <!--ng-attr-y=\"{{resource.rect.y}}\"-->\n                        <!--ng-attr-width=\"{{resource.rect.width}}\"-->\n                        <!--ng-attr-height=\"{{resource.rect.height}}\"-->\n                        <!--class=\"rect\"></rect>-->\n\n                <!--<rect ng-repeat=\"instance in resource.instances track by $index\"-->\n                      <!--ng-attr-x=\"{{instance.x}}\"-->\n                      <!--ng-attr-y=\"{{instance.y}}\"-->\n                      <!--ng-attr-width=\"{{instance.width}}\"-->\n                      <!--ng-attr-height=\"{{instance.height}}\"-->\n                      <!--class=\"instance\"></rect>-->\n\n            <!--</g>-->\n        <!--</g>-->\n        <!--<g>-->\n            <!--<text ng-repeat=\"text in vm.graph.texts\"-->\n                  <!--ng-attr-x=\"{{text.x}}\"-->\n                  <!--ng-attr-y=\"{{text.y}}\"-->\n                  <!--class=\"text\">{{text.text}}</text>-->\n        <!--</g>-->\n        <!--<g>-->\n            <!--<line ng-repeat=\"line in vm.graph.lines\"-->\n                  <!--ng-attr-x1=\"{{line.x1}}\"-->\n                  <!--ng-attr-y1=\"{{line.y1}}\"-->\n                  <!--ng-attr-x2=\"{{line.x2}}\"-->\n                  <!--ng-attr-y2=\"{{line.y2}}\"-->\n                  <!--class=\"line\">-->\n            <!--</line>-->\n        <!--</g>-->\n        <!--<g>-->\n            <!--<text-->\n                    <!--ng-attr-x=\"{{vm.graph.select.text1.x}}\"-->\n                    <!--ng-attr-y=\"{{vm.graph.select.text1.y}}\"-->\n                    <!--class=\"text select\">{{vm.graph.select.text1.text}}</text>-->\n            <!--<line-->\n                    <!--id=\"selectLine1\"-->\n                    <!--ng-attr-x1=\"{{vm.graph.select.line1.x1}}\"-->\n                    <!--ng-attr-y1=\"{{vm.graph.select.line1.y1}}\"-->\n                    <!--ng-attr-x2=\"{{vm.graph.select.line1.x2}}\"-->\n                    <!--ng-attr-y2=\"{{vm.graph.select.line1.y2}}\"-->\n                    <!--class=\"line select\">-->\n            <!--</line>-->\n            <!--<line-->\n                    <!--id=\"selectLine2\"-->\n                    <!--ng-attr-x1=\"{{vm.graph.select.line2.x1}}\"-->\n                    <!--ng-attr-y1=\"{{vm.graph.select.line2.y1}}\"-->\n                    <!--ng-attr-x2=\"{{vm.graph.select.line2.x2}}\"-->\n                    <!--ng-attr-y2=\"{{vm.graph.select.line2.y2}}\"-->\n                    <!--class=\"line select\">-->\n            <!--</line>-->\n            <!--<text-->\n                    <!--ng-attr-x=\"{{vm.graph.select.text2.x}}\"-->\n                    <!--ng-attr-y=\"{{vm.graph.select.text2.y}}\"-->\n                    <!--class=\"text select\">{{vm.graph.select.text2.text}}</text>-->\n            <!--<rect-->\n                    <!--id=\"selectRect\"-->\n                    <!--ng-attr-x=\"{{vm.graph.select.rect.x}}\"-->\n                    <!--ng-attr-y=\"{{vm.graph.select.rect.y}}\"-->\n                    <!--ng-attr-width=\"{{vm.graph.select.rect.width}}\"-->\n                    <!--ng-attr-height=\"{{vm.graph.select.rect.height}}\"-->\n                    <!--class=\"instance select\"></rect>-->\n        <!--</g>-->\n    </svg>\n\n</div>";
 
 /***/ }),
 /* 6 */
@@ -42675,18 +42696,6 @@ angular.module('app', ['wt.target.map']).controller("appCtrl", ["$scope", functi
         "parent": { "name": "1", "_id": "1" },
         "parents": ["1"],
         "overall_progress": 90
-    }, {
-        "_id": "1-2-1",
-        "name": "1-2-1这里是目标这里是目标",
-        "parent": { "name": "1-2", "_id": "1-2" },
-        "parents": ["1", "1-2"],
-        "overall_progress": 66
-    }, {
-        "_id": "1-2-2",
-        "name": "1-2-2这里是目标这里是目标",
-        "parent": { "name": "1-2", "_id": "1-2" },
-        "parents": ["1", "1-2"],
-        "overall_progress": 50
     }, {
         "_id": "1-1",
         "name": "1-1这里是目标这里是目标",

@@ -1,9 +1,13 @@
 <div class="target-map-wrap">
+    <!--<div class="target-wrap" ng-repeat="node in $ctrl.Nodes track by $index" style="top:{{node.Top}}px;left:{{node.Left}}px">-->
+
+    <!--</div>-->
+
     <svg
             ng-attr-height="{{$ctrl.map.height}}" ng-attr-width="{{$ctrl.map.width}}"
             ng-click="$ctrl.svgClick($event)"
             class="target-map">
-        <g ng-repeat="node in $ctrl.viewNodes track by $index">
+        <g ng-repeat="node in $ctrl.Nodes track by $index">
             <rect
                     ng-attr-x="{{node.Left}}"
                     ng-attr-y="{{node.Top}}"
@@ -12,14 +16,15 @@
                     rx="0"
                     ry="3"
                     class="rect"
+                    ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]"
                     target="{{node._id}}"></rect>
 
-            <text y="{{node.Top + 30}}" class="text" target="{{node._id}}">
-                <tspan x="{{node.Left + 15}}" target="{{node._id}}">{{node.name}}</tspan>
-                <tspan x="{{node.Left + 15}}" dy="20" target="{{node._id}}">{{node.name}}</tspan>
+            <text y="{{node.Top + 30}}" class="text" target="{{node._id}}" ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]">
+                <tspan x="{{node.Left + 15}}" target="{{node._id}}" ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]">{{node.name}}</tspan>
+                <tspan x="{{node.Left + 15}}" dy="20" target="{{node._id}}" ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]">{{node.name}}</tspan>
             </text>
 
-            <text x="{{node.Left + 140}}" y="{{node.Top + 80}}" ng-if="node.Nodes && node.Nodes.length > 0" class="desc" target="{{node._id}}">
+            <text x="{{node.Left + 140}}" y="{{node.Top + 80}}" ng-if="node.Nodes && node.Nodes.length > 0" class="desc" target="{{node._id}}" ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]">
                 {{node.Nodes.length}}个子目标
             </text>
 
@@ -28,14 +33,14 @@
                     ng-attr-x="{{node.Left}}"
                     ng-attr-y="{{node.Top + $ctrl.NodeHeight-5}}" class="progress-container"
                     width="{{$ctrl.NodeWidth}}"
-                    height="5" target="{{node._id}}">
+                    height="5" target="{{node._id}}" ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]">
 
             </rect>
             <rect
                     ng-attr-x="{{node.Left}}"
                     ng-attr-y="{{node.Top + $ctrl.NodeHeight-5}}" class="progress"
                     width="{{$ctrl.NodeWidth*node.overall_progress/100}}"
-                    height="5" target="{{node._id}}">
+                    height="5" target="{{node._id}}" ng-class="{true:'hand',false:''}[node.Depth <= $ctrl.showDepth]">
             </rect>
 
             <path ng-repeat="line in node.Lines track by $index" d="{{line.path}}" class="line"></path>

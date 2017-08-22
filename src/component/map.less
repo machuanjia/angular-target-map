@@ -4,6 +4,16 @@
 .target-map-wrap{
   overflow: auto;
   min-height: 700px;
+  position: relative;
+
+  .target-wrap{
+    position: absolute;
+    background:@map-bg;
+    width: 220px;
+    height: 100px;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.18);
+  }
+
   .target-map{
     background:@map-bg;
     .rect{
@@ -29,6 +39,9 @@
     .desc{
       fill:#aaa;
       font-size: 12px;
+    }
+    .hand{
+      cursor: pointer;
     }
   }
 }

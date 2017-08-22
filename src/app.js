@@ -31,18 +31,6 @@ angular.module('app', ['wt.target.map'])
             "parents": ["1"],
             "overall_progress":90
         }, {
-            "_id": "1-2-1",
-            "name": "1-2-1这里是目标这里是目标",
-            "parent": {"name": "1-2", "_id": "1-2"},
-            "parents": ["1","1-2"],
-            "overall_progress":66
-        }, {
-            "_id": "1-2-2",
-            "name": "1-2-2这里是目标这里是目标",
-            "parent": {"name": "1-2", "_id": "1-2"},
-            "parents": ["1","1-2"],
-            "overall_progress":50
-        }, {
             "_id": "1-1",
             "name": "1-1这里是目标这里是目标",
             "parent": {"name": "1", "_id": "1"},
